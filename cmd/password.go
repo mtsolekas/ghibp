@@ -14,31 +14,39 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var passwordCmd = &cobra.Command{
-	Use:   "password PASSWORD...",
-	Short: "Lookup the given passwords for breaches in the HaveIBeenPwned database",
-	Long: `Query the HaveIBeenPwned password database for each of the given
+var (
+	ErrPasswordNotFound = errors.New("password not found")
+
+	passwordCmd = &cobra.Command{
+		Use:   "password PASSWORD...",
+		Short: "Lookup the given passwords for breaches in the HaveIBeenPwned database",
+		Long: `Query the HaveIBeenPwned password database for each of the given
 passwords and return the number of hits. Passwords are not transmitted in cleartext
 but only the first 5 digits of its sha1 hash are sent to the servers and the rest of
 the lookup is done locally.`,
-	Args: cobra.MinimumNArgs(1),
+		Args: cobra.MinimumNArgs(1),
 
-	Run: func(cmd *cobra.Command, args []string) {
-		for _, pass := range args {
-			match, err := findPass(pass)
-			if err != nil {
-				logger.Fatal(err)
+		Run: func(cmd *cobra.Command, args []string) {
+			for _, pass := range args {
+				match, err := findPass(pass)
+				if err != nil {
+					if errors.Is(err, ErrPasswordNotFound) {
+						logger.Printf("%s (%s)", err, pass)
+					} else {
+						logger.Fatal(err)
+					}
+				} else {
+					fmt.Printf(
+						"Password found (%s):\n  Hash: %s\n  Hits: %s\n",
+						pass,
+						strings.ToLower(match[2]+match[0]),
+						match[1],
+					)
+				}
 			}
-
-			fmt.Printf(
-				"Password found (%s):\n  Hash: %s\n  Hits: %s\n",
-				pass,
-				strings.ToLower(match[2]+match[0]),
-				match[1],
-			)
-		}
-	},
-}
+		},
+	}
+)
 
 func findPass(pass string) ([]string, error) {
 	hash := fmt.Sprintf("%x", sha1.Sum([]byte(pass)))
@@ -72,7 +80,7 @@ func findPass(pass string) ([]string, error) {
 	re := regexp.MustCompile("(?i)" + hash[5:] + ":[0-9]+")
 	match := string(re.Find(body))
 	if match == "" {
-		return nil, errors.New("password not found")
+		return nil, ErrPasswordNotFound
 	}
 
 	return append(strings.Split(match, ":"), hash[0:5]), nil
