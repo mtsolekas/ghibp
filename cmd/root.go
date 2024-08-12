@@ -37,9 +37,15 @@ const (
 )
 
 var (
+	disableManpages bool
+	disableMarkdown bool
+	manpageDst      string
+	markdownDst     string
+
 	logger  *log.Logger
 	rootCmd = &cobra.Command{
-		Use: "ghibp command",
+		Use:   "ghibp command",
+		Short: "HaveIBeenPwned public API util",
 		Long: `Query the HaveIBeenPwned database for information on breaches and
 passwords. See each command's documentation for further details.
 Powered by https://haveibeenpwned.com/`,
@@ -56,4 +62,19 @@ func init() {
 	rootCmd.AddCommand(passwordCmd)
 	rootCmd.AddCommand(breachCmd)
 	rootCmd.AddCommand(breachesCmd)
+	rootCmd.AddCommand(docsCmd)
+
+	docsCmd.Flags().
+		BoolVarP(&disableManpages, "disable-manpages", "", false, "Disable manpage generation")
+	docsCmd.Flags().
+		BoolVarP(&disableMarkdown, "disable-markdown", "", false, "Disable markdown generation")
+
+	docsCmd.Flags().
+		StringVarP(&markdownDst, "markdown-destination", "", "./docs/",
+			"Top level destination directory for markdown documents")
+	docsCmd.Flags().
+		StringVarP(&manpageDst, "manpage-destination", "", "./dist/man/",
+			"Top level destination directory for manpage documents")
+
+	rootCmd.DisableAutoGenTag = true
 }
