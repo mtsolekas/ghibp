@@ -1,17 +1,13 @@
 module ghibp
 
-go 1.22.0
-
-toolchain go1.22.6
-
-require github.com/spf13/cobra v1.8.1
-
-require github.com/mmcdole/gofeed v1.3.0
+go 1.22.6
 
 require (
 	github.com/microcosm-cc/bluemonday v1.0.27
+	github.com/mmcdole/gofeed v1.3.0
+	github.com/spf13/cobra v1.8.1
 	github.com/tobischo/gokeepasslib/v3 v3.6.0
-	golang.org/x/term v0.22.0
+	golang.org/x/term v0.23.0
 )
 
 require (
@@ -28,9 +24,9 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/tobischo/argon2 v0.1.0 // indirect
-	golang.org/x/crypto v0.25.0 // indirect
-	golang.org/x/net v0.27.0 // indirect
-	golang.org/x/sys v0.22.0 // indirect
-	golang.org/x/text v0.16.0 // indirect
+	golang.org/x/crypto v0.26.0 // indirect
+	golang.org/x/net v0.28.0 // indirect
+	golang.org/x/sys v0.24.0 // indirect
+	golang.org/x/text v0.17.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
