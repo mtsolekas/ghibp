@@ -37,6 +37,9 @@ const (
 )
 
 var (
+	passKdbx  string
+	passStdin bool
+
 	disableManpages bool
 	disableMarkdown bool
 	manpageDst      string
@@ -63,6 +66,11 @@ func init() {
 	rootCmd.AddCommand(breachCmd)
 	rootCmd.AddCommand(breachesCmd)
 	rootCmd.AddCommand(docsCmd)
+
+	passwordCmd.Flags().
+		BoolVarP(&passStdin, "interactive", "i", false, "Source passwords interactively")
+	passwordCmd.Flags().
+		StringVarP(&passKdbx, "kdbx", "k", "", "Source passwords form KDBX file")
 
 	docsCmd.Flags().
 		BoolVarP(&disableManpages, "disable-manpages", "", false, "Disable manpage generation")

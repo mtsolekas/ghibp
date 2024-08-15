@@ -16,7 +16,9 @@ ghibp password PASSWORD... [flags]
 ### Options
 
 ```
-  -h, --help   help for password
+  -h, --help          help for password
+  -i, --interactive   Source passwords interactively
+  -k, --kdbx string   Source passwords form KDBX file
 ```
 
 ### SEE ALSO

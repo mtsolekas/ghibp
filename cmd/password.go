@@ -8,10 +8,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
+	"syscall"
 
 	"github.com/spf13/cobra"
+	"github.com/tobischo/gokeepasslib/v3"
+	"golang.org/x/term"
 )
 
 var (
@@ -24,25 +28,16 @@ var (
 passwords and return the number of hits. Passwords are not transmitted in cleartext
 but only the first 5 digits of its sha1 hash are sent to the servers and the rest of
 the lookup is done locally.`,
-		Args: cobra.MinimumNArgs(1),
-
+		Args: cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
-			for _, pass := range args {
-				match, err := findPass(pass)
-				if err != nil {
-					if errors.Is(err, ErrPasswordNotFound) {
-						logger.Printf("%s (%s)", err, pass)
-					} else {
-						logger.Fatal(err)
-					}
-				} else {
-					fmt.Printf(
-						"Password found (%s):\n  Hash: %s\n  Hits: %s\n",
-						pass,
-						strings.ToLower(match[2]+match[0]),
-						match[1],
-					)
+			if passKdbx != "" {
+				sourceKdbx(passKdbx)
+			} else if passStdin {
+				for {
+					sourceStdin()
 				}
+			} else {
+				sourceArgs(args)
 			}
 		},
 	}
@@ -84,4 +79,125 @@ func findPass(pass string) ([]string, error) {
 	}
 
 	return append(strings.Split(match, ":"), hash[0:5]), nil
+}
+
+func readPassword() ([]byte, error) {
+	fmt.Print("Enter Password (Ctrl-c to exit): ")
+	bytepw, err := term.ReadPassword(int(syscall.Stdin))
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println()
+
+	return bytepw, nil
+}
+
+func traverseKdbxGrps(groups []gokeepasslib.Group) {
+	if len(groups) == 0 {
+		return
+	}
+
+	for _, grp := range groups {
+		if grp.Name == "Recycle Bin" {
+			continue
+		}
+
+		for _, entry := range grp.Entries {
+			match, err := findPass(entry.GetPassword())
+			if err != nil {
+				if errors.Is(err, ErrPasswordNotFound) {
+					logger.Printf(
+						"%s for %s/%s",
+						err,
+						grp.Name,
+						entry.GetTitle(),
+					)
+				} else {
+					logger.Fatal(err)
+				}
+
+				continue
+			}
+			fmt.Printf(
+				"Password found (%s/%s):\n Hash: %s\n Hits: %s\n",
+				grp.Name,
+				entry.GetTitle(),
+				strings.ToLower(match[2]+match[0]),
+				match[1],
+			)
+		}
+
+		traverseKdbxGrps(grp.Groups)
+	}
+}
+
+func sourceArgs(args []string) {
+	for _, pass := range args {
+		match, err := findPass(pass)
+		if err != nil {
+			if errors.Is(err, ErrPasswordNotFound) {
+				logger.Printf("%s (%s)", err, pass)
+			} else {
+				logger.Fatal(err)
+			}
+		} else {
+			fmt.Printf(
+				"Password found (%s):\n  Hash: %s\n  Hits: %s\n",
+				pass,
+				strings.ToLower(match[2]+match[0]),
+				match[1],
+			)
+		}
+	}
+}
+
+func sourceStdin() {
+	bytepw, err := readPassword()
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	pass := string(bytepw)
+	match, err := findPass(pass)
+	if err != nil {
+		if errors.Is(err, ErrPasswordNotFound) {
+			logger.Printf("%s (%s)", err, pass)
+		} else {
+			logger.Fatal(err)
+		}
+
+		return
+	}
+
+	fmt.Printf(
+		"Password found (%s):\n  Hash: %s\n  Hits: %s\n",
+		pass,
+		strings.ToLower(match[2]+match[0]),
+		match[1],
+	)
+}
+
+func sourceKdbx(path string) {
+	f, err := os.Open(path)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	defer f.Close()
+
+	dbPassword, err := readPassword()
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	db := gokeepasslib.NewDatabase()
+	db.Credentials = gokeepasslib.NewPasswordCredentials(string(dbPassword))
+	err = gokeepasslib.NewDecoder(f).Decode(db)
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	db.UnlockProtectedEntries()
+	traverseKdbxGrps(db.Content.Root.Groups)
 }
