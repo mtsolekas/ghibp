@@ -1,6 +1,8 @@
 module ghibp
 
-go 1.22.6
+go 1.22.0
+
+toolchain go1.22.6
 
 require (
 	github.com/microcosm-cc/bluemonday v1.0.27
