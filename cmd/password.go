@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Marios Tsolekas <marios.tsolekas@gmail.com>
+// Copyright (C) 2022, 2024 Marios Tsolekas <marios.tsolekas@gmail.com>
 // SPDX-License-Identifier: GPL-3.0-or-later
 package cmd
 
